@@ -13,7 +13,7 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 
-from core import build_kodi_playlist, build_epg
+from core import build_kodi_playlist, build_epg, MagioError
 
 from .context import ADDON, ADDON_ID, client, log, notify, profile_dir, setting_int
 
@@ -96,11 +96,16 @@ def setup(interactive=False):
         progress.update(10, "Building channel list and guide…")
     try:
         m3u_path, epg_path = generate(epg=True)
+    except MagioError:
+        if progress:
+            progress.close()
+        notify("Live TV setup failed — check your username/password in settings")
+        return False
     except Exception as e:
         log(f"setup generate failed: {e}")
         if progress:
             progress.close()
-        notify("Live TV setup failed — check credentials")
+        notify(f"Live TV setup failed: {e}")
         return False
 
     if progress:

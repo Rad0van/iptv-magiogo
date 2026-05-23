@@ -29,7 +29,7 @@ def build_epg(
             datetime.now() - datetime.fromtimestamp(os.path.getmtime(cache_path))
         ).days
         if age_days < max_cache_days:
-            with open(cache_path, "r") as f:
+            with open(cache_path, "r", encoding="utf-8") as f:
                 return f.read()
 
     date_from = datetime.now() - timedelta(days=days_back)
@@ -96,5 +96,5 @@ def build_epg(
 
     writer.write(cache_path, True)
 
-    with open(cache_path, "r") as f:
+    with open(cache_path, "r", encoding="utf-8") as f:
         return f.read()

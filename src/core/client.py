@@ -48,14 +48,14 @@ class MagioClient:
 
     def _load_tokens(self):
         try:
-            with open(self.cfg.token_path, "r") as f:
+            with open(self.cfg.token_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             return data["accesstoken"], data["refreshtoken"]
         except Exception:
             return "", ""
 
     def _save_tokens(self, access, refresh):
-        with open(self.cfg.token_path, "w") as f:
+        with open(self.cfg.token_path, "w", encoding="utf-8") as f:
             f.write(json.dumps({"accesstoken": access, "refreshtoken": refresh}, indent=4))
 
     def _refresh_tokens(self):
