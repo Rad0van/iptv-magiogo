@@ -1,0 +1,23 @@
+# Keep the server image small and free of secrets.
+.git
+.github
+.venv
+**/__pycache__/
+*.pyc
+
+# Secrets / local-only
+.env
+.magio_token.json
+.epg.xmltv
+iptv-magiogo.sh
+.claude
+
+# Not needed to run the server
+apk/
+addon/
+dist/
+scripts/
+.vscode
+*.code-workspace
+*.md
+LICENSE

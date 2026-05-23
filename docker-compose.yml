@@ -1,8 +1,7 @@
-version: "3"
-
 services:
   iptv-magiogo:
-    image: ghcr.io/xhyrom/iptv-magiogo:latest
+    build: .
+    image: ghcr.io/rad0van/iptv-magiogo:latest
     restart: always
     env_file:
       - .env
