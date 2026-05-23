@@ -106,10 +106,15 @@ def _item_art(it):
     return art
 
 
+# Kodi's Estuary label font (NotoSans, subset to Latin) has no padlock/emoji
+# glyph — they render as an empty box — so flag locked content with a text tag.
+LOCK = "[COLOR orange](locked)[/COLOR] "
+
+
 def _item_label(it):
     label = it.title or str(it.id)
     if it.free is False:
-        label = f"[COLOR orange]🔒[/COLOR] {label}"
+        label = f"{LOCK}{label}"
     return label
 
 
@@ -232,7 +237,7 @@ def _row_all_locked(bs, pid, headers):
 
 
 def cms_page(ref):
-    """List a Backstage page's rows (carousels) as folders, flagging a row 🔒
+    """List a Backstage page's rows (carousels) as folders, flagging a row "(locked)"
     when all of its items need another subscription. Lock checks reuse one auth
     token and run in parallel to keep the page snappy."""
     import concurrent.futures
@@ -258,7 +263,7 @@ def cms_page(ref):
 
     for label, pid in rows:
         if locked.get(pid):
-            label = f"[COLOR orange]🔒[/COLOR] {label}"
+            label = f"{LOCK}{label}"
         add_folder(label, action="cms_row", pid=pid)
     xbmcplugin.setContent(HANDLE, "videos")
     xbmcplugin.endOfDirectory(HANDLE)
@@ -292,7 +297,7 @@ def _series_locked_map(bs, series_ids, headers):
 def cms_row(pid, offset=0):
     """Resolve a row's playlistId and list its items (series as folders),
     paginating through the full result set with a 'Next page' item. Series whose
-    every episode needs another subscription are flagged 🔒."""
+    every episode needs another subscription are flagged "(locked)"."""
     bs = backstage()
     headers, _ok = client().auth_headers()
     payload, items = bs.resolve_row(pid, offset=offset, limit=_page_size(), headers=headers)
@@ -306,7 +311,7 @@ def cms_row(pid, offset=0):
             has_series = True
             label = it.title or str(it.id)
             if lk:
-                label = f"[COLOR orange]🔒[/COLOR] {label}"
+                label = f"{LOCK}{label}"
             add_folder(label, action="vod_series_detail", id=it.id,
                        art=_item_art(it), plot=it.description)
         else:
@@ -385,7 +390,7 @@ def vod_series_genre(genre_id, offset=0):
             continue
         label = s.title or str(s.id)
         if lk:
-            label = f"[COLOR orange]🔒[/COLOR] {label}"
+            label = f"{LOCK}{label}"
         add_folder(label, action="vod_series_detail", id=s.id,
                    art=_item_art(s), plot=s.description)
     _add_paging(payload, len(series), "vod_series_genre", id=genre_id, offset=offset)
@@ -402,7 +407,7 @@ def vod_series_detail(sid):
         se = f"S{e.season_no or 0:02d}E{e.episode_no or 0:02d}"
         label = f"{se} — {e.title}" if e.title else se
         if e.free is False:
-            label = f"[COLOR orange]🔒[/COLOR] {label}"
+            label = f"{LOCK}{label}"
         add_playable(label, action="play_vod", id=e.id, art=_item_art(e),
                      plot=e.description, duration=e.duration, mediatype="episode")
     xbmcplugin.setContent(HANDLE, "episodes")
