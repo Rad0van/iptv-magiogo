@@ -383,24 +383,32 @@ def build_vod_m3u(items, watch_base):
 # Kodi playback property generation (player-agnostic; used by server + add-on)
 # --------------------------------------------------------------------------- #
 def kodi_inputstream_props(stream):
-    """inputstream.adaptive properties for a :class:`PlayableStream`.
+    """Kodi playback properties for a :class:`PlayableStream`.
 
-    Same key/value pairs whether emitted as ``#KODIPROP:`` lines in an M3U or
-    set via ``ListItem.setProperty`` in the add-on. Magio VOD is clear HLS, so
-    this is normally manifest_type=hls + stream_headers; the DRM branch is a
-    fallback for any future license-bearing content.
+    Clear streams (the normal Magio VOD case: signed HLS, no DRM) play through
+    **inputstream.ffmpegdirect** - the same engine as the live channels, which is
+    the most robust option here. A DRM stream (should one ever appear) falls back
+    to inputstream.adaptive with a Widevine license key.
+
+    The same key/value pairs are emitted as ``#KODIPROP:`` lines in an M3U or set
+    via ``ListItem.setProperty`` in the add-on.
     """
-    props = {
-        "inputstream": "inputstream.adaptive",
-        "inputstream.adaptive.manifest_type": stream.manifest_type,
+    mimetype = (
+        "application/dash+xml" if stream.manifest_type == "mpd"
+        else "application/x-mpegURL"
+    )
+
+    if stream.drm_scheme and stream.license_url:
+        hdrs = "&".join(f"{k}={quote(v)}" for k, v in (stream.headers or {}).items())
+        return {
+            "inputstream": "inputstream.adaptive",
+            "inputstream.adaptive.manifest_type": stream.manifest_type,
+            "inputstream.adaptive.license_type": stream.drm_scheme,
+            "inputstream.adaptive.license_key": f"{stream.license_url}|{hdrs}|R{{SSM}}|",
+        }
+
+    # Clear HLS/DASH: ffmpegdirect (no timeshift - VOD is seekable on-demand).
+    return {
+        "inputstream": "inputstream.ffmpegdirect",
+        "mimetype": mimetype,
     }
-    hdrs = "&".join(f"{k}={quote(v)}" for k, v in (stream.headers or {}).items())
-    if stream.drm_scheme:
-        props["inputstream.adaptive.license_type"] = stream.drm_scheme
-        if stream.license_url:
-            props["inputstream.adaptive.license_key"] = (
-                f"{stream.license_url}|{hdrs}|R{{SSM}}|"
-            )
-    elif hdrs:
-        props["inputstream.adaptive.stream_headers"] = hdrs
-    return props

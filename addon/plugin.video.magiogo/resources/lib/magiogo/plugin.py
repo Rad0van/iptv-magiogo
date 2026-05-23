@@ -258,20 +258,25 @@ def play_vod(content_id):
         xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
         return
 
-    # Make sure inputstream.adaptive (+ deps) is available.
-    try:
-        import inputstreamhelper  # noqa
-        helper = inputstreamhelper.Helper(stream.manifest_type)
-        if not helper.check_inputstream():
-            notify("inputstream.adaptive is required")
-            xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
-            return
-    except ImportError:
-        pass
+    props = kodi_inputstream_props(stream)
+
+    # Only DRM streams use inputstream.adaptive; make sure it's available then.
+    if props.get("inputstream") == "inputstream.adaptive":
+        try:
+            import inputstreamhelper  # noqa
+            helper = inputstreamhelper.Helper(stream.manifest_type)
+            if not helper.check_inputstream():
+                notify("inputstream.adaptive is required")
+                xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+                return
+        except ImportError:
+            pass
 
     li = xbmcgui.ListItem(path=stream.url)
-    for k, v in kodi_inputstream_props(stream).items():
+    for k, v in props.items():
         li.setProperty(k, v)
+    if "mimetype" in props:
+        li.setMimeType(props["mimetype"])
     li.setContentLookup(False)
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
