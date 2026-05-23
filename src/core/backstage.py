@@ -17,6 +17,8 @@ Requests are authenticated to Backstage with the service + application id header
 (stable production ids embedded in the app).
 """
 
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode, quote
+
 import requests
 
 from .vod import parse_item, _items
@@ -77,23 +79,42 @@ class Backstage:
         ).json()
         return data if isinstance(data, list) else []
 
-    def resolve_row(self, playlist_id):
+    def resolve_row(self, playlist_id, offset=None, limit=None):
         """Fetch a row's items from its ``playlistId``.
 
         The playlistId is a (usually relative, already URL-encoded) skgo.magio.tv
         ``/vod/...`` query. Pass it through unchanged, prepend the host if needed,
-        and add the bearer token. Returns ``(payload, [VodItem])``.
+        and add the bearer token. When ``offset``/``limit`` are given, the query's
+        own limit/offset are overridden (for "show all" pagination). Returns
+        ``(payload, [VodItem])``.
         """
         if not playlist_id:
             return {}, []
-        url = (
-            playlist_id
-            if playlist_id.startswith("http")
-            else f"{STREAM_HOST}/{playlist_id.lstrip('/')}"
-        )
+        pid = playlist_id
+        if offset is not None or limit is not None:
+            pid = _apply_paging(pid, offset, limit)
+        url = pid if pid.startswith("http") else f"{STREAM_HOST}/{pid.lstrip('/')}"
         headers, _ok = self.client.auth_headers()
         try:
             payload = requests.get(url, headers=headers, timeout=25).json()
         except Exception:
             return {}, []
         return payload, [parse_item(i, self.lang) for i in _items(payload)]
+
+
+def _apply_paging(url, offset, limit):
+    """Override limit/offset (and force getTotalCount) in a playlistId query,
+    preserving the RSQL filter and any other params."""
+    parts = urlsplit(url)
+    pairs = [
+        (k, v)
+        for k, v in parse_qsl(parts.query, keep_blank_values=True)
+        if k not in ("limit", "offset", "getTotalCount")
+    ]
+    if limit is not None:
+        pairs.append(("limit", str(limit)))
+    if offset is not None:
+        pairs.append(("offset", str(offset)))
+    pairs.append(("getTotalCount", "true"))
+    query = urlencode(pairs, quote_via=quote)  # %20 (not '+'), matches RSQL encoding
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))

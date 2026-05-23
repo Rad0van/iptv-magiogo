@@ -226,9 +226,10 @@ def cms_page(ref):
     xbmcplugin.endOfDirectory(HANDLE)
 
 
-def cms_row(pid):
-    """Resolve a row's playlistId and list its items (series as folders)."""
-    _payload, items = backstage().resolve_row(pid)
+def cms_row(pid, offset=0):
+    """Resolve a row's playlistId and list its items (series as folders),
+    paginating through the full result set with a 'Next page' item."""
+    payload, items = backstage().resolve_row(pid, offset=offset, limit=_page_size())
     has_series = False
     for it in items:
         if _free_only() and it.free is False:
@@ -241,6 +242,7 @@ def cms_row(pid):
             add_playable(_item_label(it), action="play_vod", id=it.id, art=_item_art(it),
                          plot=it.description, year=it.year, duration=it.duration,
                          mediatype="video")
+    _add_paging(payload, len(items), "cms_row", pid=pid, offset=offset)
     xbmcplugin.setContent(HANDLE, "tvshows" if has_series else "movies")
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -401,7 +403,7 @@ def _dispatch(action, args):
     elif action == "cms_page":
         cms_page(args["ref"])
     elif action == "cms_row":
-        cms_row(args["pid"])
+        cms_row(args["pid"], int(args.get("offset", 0)))
     elif action == "vod_category":
         vod_category(args["id"], int(args.get("offset", 0)))
     elif action == "vod_series_genre":
