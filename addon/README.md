@@ -11,19 +11,21 @@ Works as a video add-on **and** integrates with Kodi's native Live TV guide:
 - **Live TV** (Video Add-ons) → channel list → play (inputstream.ffmpegdirect)
 - **VOD** → categories / Series → movies / episodes → play (inputstream.ffmpegdirect; inputstream.adaptive only if a title is ever DRM-protected)
 - **Native TV guide (PVR)** → *Set up Live TV guide (PVR)* generates an M3U
-  (channels via `plugin://` callbacks) + XMLTV EPG into the add-on profile,
-  configures `pvr.iptvsimple` to read them, and reloads it. A background
-  **service** keeps the EPG refreshed. Catchup/archive is wired via the EPG.
+  (channels via `plugin://` callbacks) + XMLTV EPG into the add-on profile and
+  points `pvr.iptvsimple`'s instance settings at them. **Restart Kodi** to load
+  the channels (the add-on never toggles the PVR client — doing so mid-run
+  crashes Kodi). A background **service** keeps the EPG refreshed; iptvsimple
+  re-reads the files on its own refresh interval. Catchup is wired via the EPG.
 - Auth via add-on settings; titles needing another subscription are marked 🔒
 - Validated end-to-end against the live API (channels, VOD, M3U/EPG generation,
   pvr.iptvsimple config).
 
 ### Using the native TV guide
 
-Open the add-on → **Set up Live TV guide (PVR)** once. Then use Kodi's **TV**
-section (channels + EPG). The service refreshes the guide periodically; toggle it
-in the add-on's *Live TV (PVR)* settings. Requires the *PVR IPTV Simple Client*
-(auto-installed as a dependency).
+Open the add-on → **Set up Live TV guide (PVR)** once, then **restart Kodi**.
+Channels + EPG appear in Kodi's **TV** section. The service refreshes the guide
+periodically; toggle it in the add-on's *Live TV (PVR)* settings. Requires the
+*PVR IPTV Simple Client* (auto-installed as a dependency).
 
 ## Features
 

@@ -1,9 +1,9 @@
 """Background service: keeps the Live TV playlist + EPG fresh for pvr.iptvsimple.
 
-Only active once the user has set up Live TV (the ``enable_livetv`` setting,
-flipped on by the 'Set up Live TV' action). On Kodi start it ensures the files
-exist and the PVR client is pointed at them (EPG is served from cache, so this
-is cheap), then refreshes the EPG periodically.
+Only active once the user has run 'Set up Live TV' (the ``enable_livetv``
+setting). It just (re)writes the local playlist/EPG files; pvr.iptvsimple picks
+up changes on its own refresh interval. It never enables/disables the PVR client
+(that crashes Kodi) and never reconfigures it.
 """
 
 import xbmc
@@ -18,19 +18,19 @@ def main():
     monitor = xbmc.Monitor()
     log("service started")
 
-    if setting_bool("enable_livetv"):
+    # On startup only generate if enabled and the files are missing, so normal
+    # startups stay cheap (EPG is otherwise refreshed on the interval below).
+    if setting_bool("enable_livetv") and not iptv.files_exist():
         try:
-            iptv.setup(interactive=False)  # cheap when EPG cache is fresh
+            iptv.generate(epg=True)
         except Exception as e:  # never let the service crash Kodi
-            log(f"service initial setup error: {e}")
+            log(f"service initial generate error: {e}")
 
     while not monitor.waitForAbort(REFRESH_INTERVAL):
         if not setting_bool("enable_livetv"):
             continue
         try:
-            m3u_path, epg_path = iptv.generate(epg=True, force_epg=True)
-            iptv.configure_iptvsimple(m3u_path, epg_path)
-            iptv.reload_iptvsimple()
+            iptv.generate(epg=True, force_epg=True)
             log("service refreshed playlist + epg")
         except Exception as e:
             log(f"service refresh error: {e}")
