@@ -14,7 +14,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BASE_URL="${1:-https://YOUR-HOST.example/iptv-magiogo}"
+BASE_URL="${1:-https://rad0van.github.io/iptv-magiogo}"
 BASE_URL="${BASE_URL%/}"
 DIST="$ROOT/dist"
 PY="$ROOT/.venv/bin/python"
