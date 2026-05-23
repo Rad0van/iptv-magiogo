@@ -19,6 +19,7 @@ from core import MagioError, rsql, kodi_inputstream_props
 from .context import (
     client,
     vodc,
+    backstage,
     log,
     notify,
     setting_bool,
@@ -169,14 +170,89 @@ def _add_paging(payload, shown, action, **params):
                    **dict(params, offset=offset + _page_size()))
 
 
+# Backstage menu slugs that are live-TV/account, not VOD — skip in the VOD menu.
+CMS_SKIP_SLUGS = {
+    "home", "watch-tv", "my-content", "settings", "radia",
+    "watch-tv_extension_tablet", "watch-tv_extension_web",
+}
+
+
 def vod_menu():
+    """CMS-driven VOD menu (mirrors the app's 'Magio Kino' tabs/rows)."""
     add_folder("Search…", action="vod_search", plot="Search movies & episodes")
+    try:
+        menu = backstage().menu("MENU_MOBILES")
+    except Exception as e:
+        log(f"backstage menu failed: {e}")
+        menu = None
+    if not menu:
+        notify("Couldn't load the Magio Kino menu — using categories")
+        vod_menu_fallback()
+        return
+    for item in menu.get("items", []):
+        if item.get("slug") in CMS_SKIP_SLUGS:
+            continue
+        label = item.get("label") or item.get("slug") or "?"
+        if item.get("items"):            # a 'tabs' node (e.g. Magio Kino) -> drill in
+            add_folder(label, action="cms_menu", slug=item["slug"])
+        elif item.get("reference"):      # a single page
+            add_folder(label, action="cms_page", ref=item["reference"])
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def cms_menu(slug):
+    """List the sub-tabs/pages of a Backstage 'tabs' node."""
+    item = backstage().find_item(slug)
+    for sub in (item.get("items") if item else []) or []:
+        label = sub.get("label") or sub.get("slug") or "?"
+        if sub.get("items"):
+            add_folder(label, action="cms_menu", slug=sub["slug"])
+        elif sub.get("reference"):
+            add_folder(label, action="cms_page", ref=sub["reference"])
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def cms_page(ref):
+    """List a Backstage page's rows (carousels) as folders."""
+    for row in backstage().page(ref):
+        if (row.get("metadata") or {}).get("show") is False:
+            continue
+        pid = row.get("playlistId")
+        # skip placeholder/test rows the CMS sometimes leaves in
+        if not pid or 'titleOriginal==' in pid or 'sdsds' in pid:
+            continue
+        add_folder(row.get("label") or "?", action="cms_row", pid=pid)
+    xbmcplugin.setContent(HANDLE, "videos")
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def cms_row(pid):
+    """Resolve a row's playlistId and list its items (series as folders)."""
+    _payload, items = backstage().resolve_row(pid)
+    has_series = False
+    for it in items:
+        if _free_only() and it.free is False:
+            continue
+        if it.type == "SERIES":
+            has_series = True
+            add_folder(it.title or str(it.id), action="vod_series_detail", id=it.id,
+                       art=_item_art(it), plot=it.description)
+        else:
+            add_playable(_item_label(it), action="play_vod", id=it.id, art=_item_art(it),
+                         plot=it.description, year=it.year, duration=it.duration,
+                         mediatype="video")
+    xbmcplugin.setContent(HANDLE, "tvshows" if has_series else "movies")
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def vod_menu_fallback():
+    """Raw-taxonomy VOD menu, used if the Backstage CMS is unavailable."""
     add_folder("Series (by genre)", action="vod_series_genres",
                plot="TV series, grouped by genre")
     _payload, cats = vodc().categories()
     for c in cats:
         if c["id"] == SERIES_CATEGORY_ID:
-            continue  # series are reachable via 'Series (by genre)' above
+            continue
         add_folder(c["name"], action="vod_category", id=c["id"],
                    plot=f"{len(c['genres'])} genres")
     xbmcplugin.endOfDirectory(HANDLE)
@@ -320,6 +396,12 @@ ROUTES = {
 def _dispatch(action, args):
     if action in ROUTES:
         ROUTES[action]()
+    elif action == "cms_menu":
+        cms_menu(args["slug"])
+    elif action == "cms_page":
+        cms_page(args["ref"])
+    elif action == "cms_row":
+        cms_row(args["pid"])
     elif action == "vod_category":
         vod_category(args["id"], int(args.get("offset", 0)))
     elif action == "vod_series_genre":
@@ -337,7 +419,8 @@ def _dispatch(action, args):
 
 AUTH_ACTIONS = {
     "live", "vod", "vod_search", "vod_series_genres", "vod_series_genre",
-    "vod_category", "vod_series_detail", "play_live", "play_vod", "setup_pvr",
+    "vod_category", "vod_series_detail", "cms_menu", "cms_page", "cms_row",
+    "play_live", "play_vod", "setup_pvr",
 }
 
 

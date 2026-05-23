@@ -11,7 +11,7 @@ import xbmcaddon
 import xbmcgui
 import xbmcvfs
 
-from core import Config, MagioClient, VodClient
+from core import Config, MagioClient, VodClient, Backstage
 
 ADDON = xbmcaddon.Addon()
 ADDON_ID = ADDON.getAddonInfo("id")
@@ -67,6 +67,7 @@ def make_config():
 
 _client = None
 _vod = None
+_backstage = None
 
 
 def client():
@@ -82,3 +83,10 @@ def vodc():
     if _vod is None:
         _vod = VodClient(client())
     return _vod
+
+
+def backstage():
+    global _backstage
+    if _backstage is None:
+        _backstage = Backstage(client())
+    return _backstage

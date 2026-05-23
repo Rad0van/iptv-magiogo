@@ -9,7 +9,7 @@ documentaries) as `plugin://` folders and play them. Reuses the shared
 Works as a video add-on **and** integrates with Kodi's native Live TV guide:
 
 - **Live TV** (Video Add-ons) → channel list → play (inputstream.ffmpegdirect)
-- **VOD** → Search, movie categories, and **Series grouped by genre** → seasons/episodes → play (inputstream.ffmpegdirect; adaptive only for DRM). All listings paginate.
+- **VOD** → mirrors the app's **Magio Kino** exactly: the tabs (Dokumenty, Šport, …) and carousels are read live from 24i Backstage CMS (`/menus`, `/pages/{id}`), each row resolved from its `playlistId`. Series → seasons/episodes; play via inputstream.ffmpegdirect. Plus a Search. Falls back to raw categories if the CMS is unreachable.
 - **Native TV guide (PVR)** → *Set up Live TV guide (PVR)* generates an M3U
   (channels via `plugin://` callbacks) + XMLTV EPG into the add-on profile and
   points `pvr.iptvsimple`'s instance settings at them. **Restart Kodi** to load

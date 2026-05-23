@@ -43,6 +43,10 @@ class Config:
     app_version: str = "4.0.21"
     os_version: str = "18.0"
 
+    # 24i Backstage CMS that drives the VOD UI (menus/pages/rows).
+    backstage_service_id: str = "97c10db0-b826-11e9-8a90-434c3c7200db"
+    backstage_app_id: str = "cf468b80-b962-11e9-8d2d-93cf115b6f2f"
+
     user_agent: str = DEFAULT_USER_AGENT
     stream_user_agent: str = STREAM_USER_AGENT
     no_access_url: str = NO_ACCESS_URL

@@ -18,6 +18,7 @@ from .vod import (
     kodi_inputstream_props,
     build_vod_m3u,
 )
+from .backstage import Backstage
 
 __all__ = [
     "Config",
@@ -32,4 +33,5 @@ __all__ = [
     "rsql",
     "kodi_inputstream_props",
     "build_vod_m3u",
+    "Backstage",
 ]
