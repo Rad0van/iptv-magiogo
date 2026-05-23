@@ -78,19 +78,33 @@ def _set_info(li, title, plot="", year=None, duration=0, mediatype=""):
         li.setInfo("video", info)
 
 
-def add_folder(label, *, art=None, plot="", **params):
-    li = xbmcgui.ListItem(label=label)
-    if art:
-        li.setArt(art)
-    _set_info(li, label, plot=plot)
+# A locked item is shown dimmed (grey label) with a padlock thumbnail. Kodi's
+# label font has no padlock glyph, so the lock is a bundled image, not text.
+LOCK_IMG = "special://home/addons/plugin.video.magiogo/resources/lock.png"
+
+
+def _grey(label):
+    return f"[COLOR gray]{label}[/COLOR]"
+
+
+def _locked_art(art):
+    a = dict(art or {})
+    a["icon"] = LOCK_IMG
+    a["thumb"] = LOCK_IMG
+    return a
+
+
+def add_folder(label, *, art=None, plot="", locked=False, **params):
+    li = xbmcgui.ListItem(label=_grey(label) if locked else label)
+    li.setArt(_locked_art(art) if locked else (art or {}))
+    _set_info(li, label, plot=plot)  # clean title (no colour markup) for metadata
     xbmcplugin.addDirectoryItem(HANDLE, url(**params), li, isFolder=True)
 
 
 def add_playable(label, *, action, id, art=None, plot="", year=None,
-                 duration=0, mediatype="video"):
-    li = xbmcgui.ListItem(label=label)
-    if art:
-        li.setArt(art)
+                 duration=0, mediatype="video", locked=False):
+    li = xbmcgui.ListItem(label=_grey(label) if locked else label)
+    li.setArt(_locked_art(art) if locked else (art or {}))
     _set_info(li, label, plot=plot, year=year, duration=duration, mediatype=mediatype)
     li.setProperty("IsPlayable", "true")
     xbmcplugin.addDirectoryItem(HANDLE, url(action=action, id=id), li, isFolder=False)
@@ -106,16 +120,8 @@ def _item_art(it):
     return art
 
 
-# Kodi's Estuary label font (NotoSans, subset to Latin) has no padlock/emoji
-# glyph — they render as an empty box — so flag locked content with a text tag.
-LOCK = "[COLOR orange](locked)[/COLOR] "
-
-
 def _item_label(it):
-    label = it.title or str(it.id)
-    if it.free is False:
-        label = f"{LOCK}{label}"
-    return label
+    return it.title or str(it.id)
 
 
 # --------------------------------------------------------------------------- #
@@ -262,9 +268,7 @@ def cms_page(ref):
                 locked[futs[f]] = f.result()
 
     for label, pid in rows:
-        if locked.get(pid):
-            label = f"{LOCK}{label}"
-        add_folder(label, action="cms_row", pid=pid)
+        add_folder(label, action="cms_row", pid=pid, locked=locked.get(pid, False))
     xbmcplugin.setContent(HANDLE, "videos")
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -309,17 +313,14 @@ def cms_row(pid, offset=0):
             if _free_only() and lk:
                 continue
             has_series = True
-            label = it.title or str(it.id)
-            if lk:
-                label = f"{LOCK}{label}"
-            add_folder(label, action="vod_series_detail", id=it.id,
-                       art=_item_art(it), plot=it.description)
+            add_folder(it.title or str(it.id), action="vod_series_detail", id=it.id,
+                       art=_item_art(it), plot=it.description, locked=lk)
         else:
             if _free_only() and it.free is False:
                 continue
             add_playable(_item_label(it), action="play_vod", id=it.id, art=_item_art(it),
                          plot=it.description, year=it.year, duration=it.duration,
-                         mediatype="video")
+                         mediatype="video", locked=(it.free is False))
     _add_paging(payload, len(items), "cms_row", pid=pid, offset=offset)
     xbmcplugin.setContent(HANDLE, "tvshows" if has_series else "movies")
     xbmcplugin.endOfDirectory(HANDLE)
@@ -350,7 +351,7 @@ def vod_search():
             continue
         add_playable(_item_label(m), action="play_vod", id=m.id, art=_item_art(m),
                      plot=m.description, year=m.year, duration=m.duration,
-                     mediatype="video")
+                     mediatype="video", locked=(m.free is False))
     xbmcplugin.setContent(HANDLE, "movies")
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -364,7 +365,7 @@ def vod_category(cid, offset=0):
             continue
         add_playable(_item_label(m), action="play_vod", id=m.id, art=_item_art(m),
                      plot=m.description, year=m.year, duration=m.duration,
-                     mediatype="movie")
+                     mediatype="movie", locked=(m.free is False))
     _add_paging(payload, len(movies), "vod_category", id=cid, offset=offset)
     xbmcplugin.setContent(HANDLE, "movies")
     xbmcplugin.endOfDirectory(HANDLE)
@@ -388,11 +389,8 @@ def vod_series_genre(genre_id, offset=0):
         lk = locked.get(s.id, False)
         if _free_only() and lk:
             continue
-        label = s.title or str(s.id)
-        if lk:
-            label = f"{LOCK}{label}"
-        add_folder(label, action="vod_series_detail", id=s.id,
-                   art=_item_art(s), plot=s.description)
+        add_folder(s.title or str(s.id), action="vod_series_detail", id=s.id,
+                   art=_item_art(s), plot=s.description, locked=lk)
     _add_paging(payload, len(series), "vod_series_genre", id=genre_id, offset=offset)
     xbmcplugin.setContent(HANDLE, "tvshows")
     xbmcplugin.endOfDirectory(HANDLE)
@@ -406,10 +404,9 @@ def vod_series_detail(sid):
             continue
         se = f"S{e.season_no or 0:02d}E{e.episode_no or 0:02d}"
         label = f"{se} — {e.title}" if e.title else se
-        if e.free is False:
-            label = f"{LOCK}{label}"
         add_playable(label, action="play_vod", id=e.id, art=_item_art(e),
-                     plot=e.description, duration=e.duration, mediatype="episode")
+                     plot=e.description, duration=e.duration, mediatype="episode",
+                     locked=(e.free is False))
     xbmcplugin.setContent(HANDLE, "episodes")
     xbmcplugin.endOfDirectory(HANDLE)
 
