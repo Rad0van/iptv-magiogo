@@ -212,16 +212,40 @@ def cms_menu(slug):
     xbmcplugin.endOfDirectory(HANDLE)
 
 
+def _is_vod_row(pid):
+    """Rows we can actually browse/play: VOD movie or series queries. Other rows
+    (continue-watching, live, schedules…) carry non-VOD ids and would only
+    produce confusing playback errors, so they're skipped."""
+    return "vod/movies" in pid or "vod/series" in pid
+
+
+def _row_all_locked(bs, pid):
+    """True if every item in a (movie) row needs another subscription. Series
+    rows can't be judged (series expose no entitlement flag) so return False."""
+    if "vod/movies" not in pid:
+        return False
+    try:
+        _p, items = bs.resolve_row(pid, offset=0, limit=50)
+    except Exception:
+        return False
+    return bool(items) and all(it.free is False for it in items)
+
+
 def cms_page(ref):
-    """List a Backstage page's rows (carousels) as folders."""
-    for row in backstage().page(ref):
+    """List a Backstage page's rows (carousels) as folders, flagging a row 🔒
+    when all of its items need another subscription."""
+    bs = backstage()
+    for row in bs.page(ref):
         if (row.get("metadata") or {}).get("show") is False:
             continue
-        pid = row.get("playlistId")
-        # skip placeholder/test rows the CMS sometimes leaves in
-        if not pid or 'titleOriginal==' in pid or 'sdsds' in pid:
+        pid = row.get("playlistId") or ""
+        # skip placeholder/test rows and rows we can't play
+        if 'titleOriginal==' in pid or 'sdsds' in pid or not _is_vod_row(pid):
             continue
-        add_folder(row.get("label") or "?", action="cms_row", pid=pid)
+        label = row.get("label") or "?"
+        if _row_all_locked(bs, pid):
+            label = f"[COLOR orange]🔒[/COLOR] {label}"
+        add_folder(label, action="cms_row", pid=pid)
     xbmcplugin.setContent(HANDLE, "videos")
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -352,10 +376,22 @@ def play_live(args):
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
 
+def _friendly_vod_error(err):
+    """Map Magio's (Slovak) backend errors to a clear short message."""
+    e = (err or "").lower()
+    if "oprávneni" in e or "permission" in e:
+        return "Not included in your subscription"
+    if "televíz" in e or "only" in e and "tv" in e:
+        return "This title plays only on a TV"
+    if not err or "nastala chyba" in e:
+        return "This title isn't available"
+    return err
+
+
 def play_vod(content_id):
     stream = vodc().get_stream(content_id)
     if not stream.success or not stream.url:
-        notify(stream.error or "Stream unavailable")
+        notify(_friendly_vod_error(stream.error))
         xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
         return
 
