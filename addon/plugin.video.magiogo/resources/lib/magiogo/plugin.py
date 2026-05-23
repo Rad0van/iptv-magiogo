@@ -156,11 +156,27 @@ def live_channels():
     xbmcplugin.endOfDirectory(HANDLE)
 
 
+# Magio's "Seriály" (TV series) category; series live here, organized by genre.
+SERIES_CATEGORY_ID = 101
+
+
+def _add_paging(payload, shown, action, **params):
+    """Append a 'Next page' folder when the listing has more items."""
+    total = payload.get("totalCount") if isinstance(payload, dict) else None
+    offset = int(params.get("offset", 0))
+    if total and (offset + shown) < total:
+        add_folder("[ Next page » ]", action=action,
+                   **dict(params, offset=offset + _page_size()))
+
+
 def vod_menu():
     add_folder("Search…", action="vod_search", plot="Search movies & episodes")
-    add_folder("Series", action="vod_series", plot="TV series")
+    add_folder("Series (by genre)", action="vod_series_genres",
+               plot="TV series, grouped by genre")
     _payload, cats = vodc().categories()
     for c in cats:
+        if c["id"] == SERIES_CATEGORY_ID:
+            continue  # series are reachable via 'Series (by genre)' above
         add_folder(c["name"], action="vod_category", id=c["id"],
                    plot=f"{len(c['genres'])} genres")
     xbmcplugin.endOfDirectory(HANDLE)
@@ -171,6 +187,7 @@ def vod_search():
     if not term:
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
         return
+    # Note: the backend only title-searches movies/episodes, not series.
     _payload, items = vodc().search(term, limit=_page_size())
     for m in items:
         if _free_only() and m.free is False:
@@ -182,9 +199,9 @@ def vod_search():
     xbmcplugin.endOfDirectory(HANDLE)
 
 
-def vod_category(cid):
-    _payload, movies = vodc().movies(
-        filter=rsql(category=cid, type="MOVIE"), limit=_page_size()
+def vod_category(cid, offset=0):
+    payload, movies = vodc().movies(
+        filter=rsql(category=cid, type="MOVIE"), limit=_page_size(), offset=offset
     )
     for m in movies:
         if _free_only() and m.free is False:
@@ -192,21 +209,27 @@ def vod_category(cid):
         add_playable(_item_label(m), action="play_vod", id=m.id, art=_item_art(m),
                      plot=m.description, year=m.year, duration=m.duration,
                      mediatype="movie")
+    _add_paging(payload, len(movies), "vod_category", id=cid, offset=offset)
     xbmcplugin.setContent(HANDLE, "movies")
-    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_TITLE)
     xbmcplugin.endOfDirectory(HANDLE)
 
 
-def vod_series_list():
-    _payload, series = vodc().series(limit=_page_size())
+def vod_series_genres():
+    _payload, cats = vodc().categories()
+    sercat = next((c for c in cats if c["id"] == SERIES_CATEGORY_ID), None)
+    add_folder("All series", action="vod_series_genre", id=0)
+    for g in (sercat["genres"] if sercat else []):
+        add_folder(g["name"], action="vod_series_genre", id=g["id"])
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def vod_series_genre(genre_id, offset=0):
+    flt = None if str(genre_id) == "0" else rsql(genre=genre_id)
+    payload, series = vodc().series(filter=flt, limit=_page_size(), offset=offset)
     for s in series:
-        sub = []
-        if s.season_count:
-            sub.append(f"{s.season_count} seasons")
-        if s.episode_count:
-            sub.append(f"{s.episode_count} episodes")
         add_folder(s.title or str(s.id), action="vod_series_detail", id=s.id,
                    art=_item_art(s), plot=s.description)
+    _add_paging(payload, len(series), "vod_series_genre", id=genre_id, offset=offset)
     xbmcplugin.setContent(HANDLE, "tvshows")
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -289,7 +312,7 @@ ROUTES = {
     "live": live_channels,
     "vod": vod_menu,
     "vod_search": vod_search,
-    "vod_series": vod_series_list,
+    "vod_series_genres": vod_series_genres,
     "setup_pvr": setup_pvr,
 }
 
@@ -298,7 +321,9 @@ def _dispatch(action, args):
     if action in ROUTES:
         ROUTES[action]()
     elif action == "vod_category":
-        vod_category(args["id"])
+        vod_category(args["id"], int(args.get("offset", 0)))
+    elif action == "vod_series_genre":
+        vod_series_genre(args["id"], int(args.get("offset", 0)))
     elif action == "vod_series_detail":
         vod_series_detail(args["id"])
     elif action == "play_live":
@@ -311,8 +336,8 @@ def _dispatch(action, args):
 
 
 AUTH_ACTIONS = {
-    "live", "vod", "vod_search", "vod_series", "vod_category",
-    "vod_series_detail", "play_live", "play_vod", "setup_pvr",
+    "live", "vod", "vod_search", "vod_series_genres", "vod_series_genre",
+    "vod_category", "vod_series_detail", "play_live", "play_vod", "setup_pvr",
 }
 
 

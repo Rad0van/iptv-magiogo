@@ -9,7 +9,7 @@ documentaries) as `plugin://` folders and play them. Reuses the shared
 Works as a video add-on **and** integrates with Kodi's native Live TV guide:
 
 - **Live TV** (Video Add-ons) → channel list → play (inputstream.ffmpegdirect)
-- **VOD** → categories / Series → movies / episodes → play (inputstream.ffmpegdirect; inputstream.adaptive only if a title is ever DRM-protected)
+- **VOD** → Search, movie categories, and **Series grouped by genre** → seasons/episodes → play (inputstream.ffmpegdirect; adaptive only for DRM). All listings paginate.
 - **Native TV guide (PVR)** → *Set up Live TV guide (PVR)* generates an M3U
   (channels via `plugin://` callbacks) + XMLTV EPG into the add-on profile and
   points `pvr.iptvsimple`'s instance settings at them. **Restart Kodi** to load
