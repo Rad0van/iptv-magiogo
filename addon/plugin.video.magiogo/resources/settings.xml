@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+    <category label="30000">
+        <setting id="username" type="text" label="30001" default=""/>
+        <setting id="password" type="text" option="hidden" label="30002" default=""/>
+        <setting id="language" type="labelenum" values="SK|CS|EN" label="30003" default="SK"/>
+    </category>
+    <category label="30010">
+        <setting id="vod_free_only" type="bool" label="30011" default="false"/>
+        <setting id="vod_page_size" type="slider" range="20,20,200" option="int" label="30012" default="100"/>
+    </category>
+    <category label="30020">
+        <setting id="enable_livetv" type="bool" label="30021" default="false"/>
+        <setting id="epg_days" type="slider" range="1,1,7" option="int" label="30022" default="5"/>
+    </category>
+</settings>

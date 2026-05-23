@@ -312,3 +312,34 @@ pyrightconfig.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/python,visualstudiocode,pycharm
+
+# Kodi add-on: generated/vendored at build time (single source of truth is src/core)
+addon/plugin.video.magiogo/resources/lib/core/
+addon/plugin.video.magiogo/resources/lib/xmltv.py
+addon/plugin.video.magiogo/resources/lib/roman.py
+addon/plugin.video.magiogo/plugin.video.magiogo.zip
+
+# Kodi repository build output
+/dist/
+
+# Secrets / local launcher (contains Magio credentials)
+/iptv-magiogo.sh
+.magio_token.json
+.epg.xmltv
+
+# Proprietary app binary used only for reverse engineering (do not publish)
+/apk/
+
+# Local agent / editor settings
+/.claude/
+
+# Generated add-on zip (build with scripts/build_addon.sh)
+/addon/plugin.video.magiogo.zip
+
+# The generic 'lib/' rule above also hides the add-on's own python package.
+# Re-include resources/lib, but keep build-time generated/vendored files out.
+!addon/plugin.video.magiogo/resources/lib/
+!addon/plugin.video.magiogo/resources/lib/**
+addon/plugin.video.magiogo/resources/lib/core/
+addon/plugin.video.magiogo/resources/lib/xmltv.py
+addon/plugin.video.magiogo/resources/lib/roman.py

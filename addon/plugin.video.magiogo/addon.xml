@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.video.magiogo" name="Magio GO" version="0.2.0" provider-name="iptv-magiogo">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0"/>
+        <import addon="script.module.requests" version="2.22.0"/>
+        <import addon="inputstream.adaptive" version="2.0.0"/>
+        <import addon="inputstream.ffmpegdirect" version="1.0.0"/>
+        <import addon="script.module.inputstreamhelper" version="0.5.0" optional="true"/>
+        <import addon="pvr.iptvsimple" version="7.0.0" optional="true"/>
+    </requires>
+    <extension point="xbmc.python.pluginsource" library="addon.py">
+        <provides>video</provides>
+    </extension>
+    <extension point="xbmc.service" library="service.py"/>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en_GB">Magio GO live TV and VOD</summary>
+        <description lang="en_GB">Watch Magio GO live channels and video-on-demand (movies, series, documentaries). Requires a Magio GO subscription. Live channels and free VOD play directly; other VOD needs the matching subscription package.</description>
+        <platform>all</platform>
+        <license>GPL-3.0-or-later</license>
+        <assets>
+            <icon>resources/icon.png</icon>
+            <fanart>resources/fanart.jpg</fanart>
+        </assets>
+    </extension>
+</addon>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.magiogo" name="Magio GO Repository" version="1.0.0" provider-name="iptv-magiogo">
+    <extension point="xbmc.addon.repository" name="Magio GO Repository">
+        <dir>
+            <info compressed="false">@BASEURL@/addons.xml</info>
+            <checksum>@BASEURL@/addons.xml.md5</checksum>
+            <datadir zip="true">@BASEURL@</datadir>
+        </dir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary lang="en_GB">Updates for the Magio GO add-on</summary>
+        <description lang="en_GB">Repository that provides automatic updates for plugin.video.magiogo (Magio GO live TV and VOD).</description>
+        <platform>all</platform>
+        <assets>
+            <icon>icon.png</icon>
+        </assets>
+    </extension>
+</addon>

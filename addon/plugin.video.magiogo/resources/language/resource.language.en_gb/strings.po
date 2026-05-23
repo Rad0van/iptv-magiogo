@@ -1,0 +1,49 @@
+# Magio GO add-on
+msgid ""
+msgstr ""
+"Project-Id-Version: plugin.video.magiogo\n"
+"Report-Msgid-Bugs-To: \n"
+"Language: en_GB\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgctxt "#30000"
+msgid "Account"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Magio GO username"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Password"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Content language"
+msgstr ""
+
+msgctxt "#30010"
+msgid "VOD"
+msgstr ""
+
+msgctxt "#30011"
+msgid "Hide titles needing another subscription"
+msgstr ""
+
+msgctxt "#30012"
+msgid "Items per category"
+msgstr ""
+
+msgctxt "#30020"
+msgid "Live TV (PVR)"
+msgstr ""
+
+msgctxt "#30021"
+msgid "Keep Live TV guide updated in background"
+msgstr ""
+
+msgctxt "#30022"
+msgid "EPG days to fetch"
+msgstr ""
