@@ -80,7 +80,7 @@ def _set_info(li, title, plot="", year=None, duration=0, mediatype=""):
 
 # A locked item is shown dimmed (grey label) with a padlock thumbnail. Kodi's
 # label font has no padlock glyph, so the lock is a bundled image, not text.
-LOCK_IMG = "special://home/addons/plugin.video.magiogo/resources/lock.png"
+LOCK_IMG = "special://home/addons/plugin.video.magiogo/resources/locked.png"
 
 
 def _grey(label):
@@ -88,9 +88,11 @@ def _grey(label):
 
 
 def _locked_art(art):
+    # Override every artwork key so the padlock shows in any view (list uses
+    # icon/thumb; poster/wall views use poster/landscape).
     a = dict(art or {})
-    a["icon"] = LOCK_IMG
-    a["thumb"] = LOCK_IMG
+    for key in ("icon", "thumb", "poster", "landscape"):
+        a[key] = LOCK_IMG
     return a
 
 
