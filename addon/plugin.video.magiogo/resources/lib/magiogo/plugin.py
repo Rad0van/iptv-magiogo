@@ -219,13 +219,13 @@ def _is_vod_row(pid):
     return "vod/movies" in pid or "vod/series" in pid
 
 
-def _row_all_locked(bs, pid):
+def _row_all_locked(bs, pid, headers):
     """True if every item in a (movie) row needs another subscription. Series
     rows can't be judged (series expose no entitlement flag) so return False."""
     if "vod/movies" not in pid:
         return False
     try:
-        _p, items = bs.resolve_row(pid, offset=0, limit=50)
+        _p, items = bs.resolve_row(pid, offset=0, limit=50, headers=headers)
     except Exception:
         return False
     return bool(items) and all(it.free is False for it in items)
@@ -233,17 +233,31 @@ def _row_all_locked(bs, pid):
 
 def cms_page(ref):
     """List a Backstage page's rows (carousels) as folders, flagging a row 🔒
-    when all of its items need another subscription."""
+    when all of its items need another subscription. Lock checks reuse one auth
+    token and run in parallel to keep the page snappy."""
+    import concurrent.futures
+
     bs = backstage()
+    rows = []
     for row in bs.page(ref):
         if (row.get("metadata") or {}).get("show") is False:
             continue
         pid = row.get("playlistId") or ""
-        # skip placeholder/test rows and rows we can't play
         if 'titleOriginal==' in pid or 'sdsds' in pid or not _is_vod_row(pid):
-            continue
-        label = row.get("label") or "?"
-        if _row_all_locked(bs, pid):
+            continue  # placeholder/test rows and rows we can't play
+        rows.append((row.get("label") or "?", pid))
+
+    headers, _ok = client().auth_headers()  # one refresh, reused below
+    movie_pids = [pid for _l, pid in rows if "vod/movies" in pid]
+    locked = {}
+    if movie_pids:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+            futs = {ex.submit(_row_all_locked, bs, pid, headers): pid for pid in movie_pids}
+            for f in concurrent.futures.as_completed(futs):
+                locked[futs[f]] = f.result()
+
+    for label, pid in rows:
+        if locked.get(pid):
             label = f"[COLOR orange]🔒[/COLOR] {label}"
         add_folder(label, action="cms_row", pid=pid)
     xbmcplugin.setContent(HANDLE, "videos")

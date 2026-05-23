@@ -79,14 +79,15 @@ class Backstage:
         ).json()
         return data if isinstance(data, list) else []
 
-    def resolve_row(self, playlist_id, offset=None, limit=None):
+    def resolve_row(self, playlist_id, offset=None, limit=None, headers=None):
         """Fetch a row's items from its ``playlistId``.
 
         The playlistId is a (usually relative, already URL-encoded) skgo.magio.tv
         ``/vod/...`` query. Pass it through unchanged, prepend the host if needed,
         and add the bearer token. When ``offset``/``limit`` are given, the query's
-        own limit/offset are overridden (for "show all" pagination). Returns
-        ``(payload, [VodItem])``.
+        own limit/offset are overridden (for "show all" pagination). Pass
+        ``headers`` (from :meth:`MagioClient.auth_headers`) to reuse one token
+        refresh across many calls. Returns ``(payload, [VodItem])``.
         """
         if not playlist_id:
             return {}, []
@@ -94,7 +95,8 @@ class Backstage:
         if offset is not None or limit is not None:
             pid = _apply_paging(pid, offset, limit)
         url = pid if pid.startswith("http") else f"{STREAM_HOST}/{pid.lstrip('/')}"
-        headers, _ok = self.client.auth_headers()
+        if headers is None:
+            headers, _ok = self.client.auth_headers()
         try:
             payload = requests.get(url, headers=headers, timeout=25).json()
         except Exception:
