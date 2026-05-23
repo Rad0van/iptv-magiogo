@@ -9,7 +9,7 @@ M3U/XMLTV for pvr.iptvsimple) is a later milestone.
 """
 
 import sys
-from urllib.parse import urlencode, parse_qsl
+from urllib.parse import urlencode, parse_qsl, quote
 
 import xbmcgui
 import xbmcplugin
@@ -264,19 +264,54 @@ def cms_page(ref):
     xbmcplugin.endOfDirectory(HANDLE)
 
 
+def _series_locked_map(bs, series_ids, headers):
+    """{series_id: all_episodes_locked} via ONE batched episode query.
+
+    Series carry no entitlement flag, so lock status is derived from their
+    episodes (which do). Fetched in a single ``serieId=in=(…)`` call and grouped,
+    keeping it fast even for a full page of series."""
+    if not series_ids:
+        return {}
+    flt = "serieId=in=(%s)" % ",".join(str(s) for s in series_ids)
+    pid = "vod/movies?limit=5000&getTotalCount=true&filter=" + quote(flt)
+    try:
+        _p, eps = bs.resolve_row(pid, headers=headers)
+    except Exception:
+        return {}
+    by_series = {}
+    for ep in eps:
+        if ep.serie_id is not None:
+            by_series.setdefault(str(ep.serie_id), []).append(ep)
+    return {
+        str(sid): bool(by_series.get(str(sid)))
+        and all(ep.free is False for ep in by_series[str(sid)])
+        for sid in series_ids
+    }
+
+
 def cms_row(pid, offset=0):
     """Resolve a row's playlistId and list its items (series as folders),
-    paginating through the full result set with a 'Next page' item."""
-    payload, items = backstage().resolve_row(pid, offset=offset, limit=_page_size())
+    paginating through the full result set with a 'Next page' item. Series whose
+    every episode needs another subscription are flagged 🔒."""
+    bs = backstage()
+    headers, _ok = client().auth_headers()
+    payload, items = bs.resolve_row(pid, offset=offset, limit=_page_size(), headers=headers)
+    locked = _series_locked_map(bs, [it.id for it in items if it.type == "SERIES"], headers)
     has_series = False
     for it in items:
-        if _free_only() and it.free is False:
-            continue
         if it.type == "SERIES":
+            lk = locked.get(it.id, False)
+            if _free_only() and lk:
+                continue
             has_series = True
-            add_folder(it.title or str(it.id), action="vod_series_detail", id=it.id,
+            label = it.title or str(it.id)
+            if lk:
+                label = f"[COLOR orange]🔒[/COLOR] {label}"
+            add_folder(label, action="vod_series_detail", id=it.id,
                        art=_item_art(it), plot=it.description)
         else:
+            if _free_only() and it.free is False:
+                continue
             add_playable(_item_label(it), action="play_vod", id=it.id, art=_item_art(it),
                          plot=it.description, year=it.year, duration=it.duration,
                          mediatype="video")
@@ -342,8 +377,16 @@ def vod_series_genres():
 def vod_series_genre(genre_id, offset=0):
     flt = None if str(genre_id) == "0" else rsql(genre=genre_id)
     payload, series = vodc().series(filter=flt, limit=_page_size(), offset=offset)
+    headers, _ok = client().auth_headers()
+    locked = _series_locked_map(backstage(), [s.id for s in series], headers)
     for s in series:
-        add_folder(s.title or str(s.id), action="vod_series_detail", id=s.id,
+        lk = locked.get(s.id, False)
+        if _free_only() and lk:
+            continue
+        label = s.title or str(s.id)
+        if lk:
+            label = f"[COLOR orange]🔒[/COLOR] {label}"
+        add_folder(label, action="vod_series_detail", id=s.id,
                    art=_item_art(s), plot=s.description)
     _add_paging(payload, len(series), "vod_series_genre", id=genre_id, offset=offset)
     xbmcplugin.setContent(HANDLE, "tvshows")
