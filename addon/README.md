@@ -62,6 +62,24 @@ add-on's `ParentalLocked` property (which does survive). Re-run it after a Kodi
 update (a newer bundled Estuary would otherwise take over); remove it by
 deleting `~/.kodi/addons/skin.estuary` and restarting Kodi.
 
+## Device management
+
+Each install identifies itself to Magio as one **device** (Settings → *Account*):
+
+- **Device name** — the label shown in your account; defaults to the machine's
+  hostname.
+- **Device ID** — the `dsid`. Generated once as a unique value and persisted on
+  first run (blank = auto), so every install is a *distinct* device instead of
+  sharing one hard-coded id. Changing it registers a new device (uses a slot).
+- **Device type** — `OTT_IPAD` (mobile/tablet, default) or `OTT_TV_ANDROID`
+  (big screen / Android TV). **Big-screen requires a subscription that allows
+  it:** on mobile-only packages (e.g. *Magio TV Štart*) an `OTT_TV_ANDROID`
+  login is rejected — you'd need *Magio TV cez internet* (M / L / XL).
+
+**My devices** (add-on root) lists the devices registered to your account, marks
+the current one, and shows the free-slot counts per category. Remove a device
+from its context menu (long-press / `c` → *Remove device*).
+
 ## Build & install (single zip)
 
 ```bash
