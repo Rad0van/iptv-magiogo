@@ -286,20 +286,39 @@ def cms_page(ref):
     xbmcplugin.endOfDirectory(HANDLE)
 
 
+_VOD_PAGE = 500  # the /vod/movies endpoint hard-caps every response at 500 rows
+
+
 def _series_locked_map(bs, series_ids, headers):
-    """{series_id: all_episodes_locked} via ONE batched episode query.
+    """{series_id: all_episodes_locked} from the series' episodes.
 
     Series carry no entitlement flag, so lock status is derived from their
-    episodes (which do). Fetched in a single ``serieId=in=(…)`` call and grouped,
-    keeping it fast even for a full page of series."""
+    episodes (which do), via a batched ``serieId=in=(…)`` query. The endpoint
+    caps responses at 500 rows regardless of the requested limit, so we PAGINATE
+    until every episode is fetched — otherwise series whose episodes fall beyond
+    the first 500 would look (wrongly) unlocked."""
     if not series_ids:
         return {}
     flt = "serieId=in=(%s)" % ",".join(str(s) for s in series_ids)
-    pid = "vod/movies?limit=5000&getTotalCount=true&filter=" + quote(flt)
+
+    def fetch(offset):
+        pid = (f"vod/movies?limit={_VOD_PAGE}&offset={offset}"
+               "&getTotalCount=true&filter=" + quote(flt))
+        return bs.resolve_row(pid, headers=headers)
+
     try:
-        _p, eps = bs.resolve_row(pid, headers=headers)
+        payload, eps = fetch(0)
     except Exception:
         return {}
+    total = (payload or {}).get("totalCount") if isinstance(payload, dict) else None
+    if total and total > len(eps):
+        # fetch the remaining pages in parallel (cap at ~12 pages for safety)
+        import concurrent.futures
+        offsets = list(range(_VOD_PAGE, min(total, _VOD_PAGE * 12), _VOD_PAGE))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+            for _p, more in ex.map(fetch, offsets):
+                eps.extend(more)
+
     by_series = {}
     for ep in eps:
         if ep.serie_id is not None:
