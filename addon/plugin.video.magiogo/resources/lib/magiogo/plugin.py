@@ -78,13 +78,14 @@ def _set_info(li, title, plot="", year=None, duration=0, mediatype=""):
         li.setInfo("video", info)
 
 
-# Locked items are shown in red: a red icon plus a red label. Kodi's "List"
-# view binds the small image to ListItem.Icon, so only the icon is recoloured
-# (red folder for folders, red film for playable items) — the real poster/thumb
-# is left untouched so artwork (poster/wall) views still show actual artwork.
+# Locked items are shown in red: a red icon + red label, plus the ParentalLocked
+# property (the one thing the skin can read that survives the thumb-loader). A
+# red folder marks a fully-locked folder, a red padlock a locked playable item.
+# Only the icon art is overridden so poster/wall views keep the real artwork; in
+# Estuary's list view the icon comes from the skin (see scripts/patch_estuary_lock.sh).
 RES = "special://home/addons/plugin.video.magiogo/resources"
 FOLDER_RED = RES + "/folder_red.png"
-VIDEO_RED = RES + "/video_red.png"
+LOCK_RED = RES + "/lock_red.png"
 
 
 def _red(label):
@@ -100,6 +101,10 @@ def _locked_art(art, icon):
 def add_folder(label, *, art=None, plot="", locked=False, **params):
     li = xbmcgui.ListItem(label=_red(label) if locked else label)
     li.setArt(_locked_art(art, FOLDER_RED) if locked else (art or {}))
+    if locked:
+        # A skin can show a lock badge for this (survives the thumb-loader,
+        # unlike the overlay). Estuary uses ParentalLocked for the PVR lock.
+        li.setProperty("ParentalLocked", "true")
     _set_info(li, label, plot=plot)  # clean title (no colour markup) for metadata
     xbmcplugin.addDirectoryItem(HANDLE, url(**params), li, isFolder=True)
 
@@ -107,7 +112,9 @@ def add_folder(label, *, art=None, plot="", locked=False, **params):
 def add_playable(label, *, action, id, art=None, plot="", year=None,
                  duration=0, mediatype="video", locked=False):
     li = xbmcgui.ListItem(label=_red(label) if locked else label)
-    li.setArt(_locked_art(art, VIDEO_RED) if locked else (art or {}))
+    li.setArt(_locked_art(art, LOCK_RED) if locked else (art or {}))
+    if locked:
+        li.setProperty("ParentalLocked", "true")
     _set_info(li, label, plot=plot, year=year, duration=duration, mediatype=mediatype)
     li.setProperty("IsPlayable", "true")
     xbmcplugin.addDirectoryItem(HANDLE, url(action=action, id=id), li, isFolder=False)

@@ -17,7 +17,8 @@ Works as a video add-on **and** integrates with Kodi's native Live TV guide:
   crashes Kodi). A background **service** keeps the EPG refreshed; iptvsimple
   re-reads the files on its own refresh interval. Catchup is wired via the EPG.
 - Auth via add-on settings; titles needing another subscription are shown in
-  **red** (red folder/film icon + red label)
+  **red** (red label everywhere; with the optional skin patch below, a red
+  padlock on locked items and a red folder on fully-locked folders)
 - Validated end-to-end against the live API (channels, VOD, M3U/EPG generation,
   pvr.iptvsimple config).
 
@@ -35,6 +36,23 @@ periodically; toggle it in the add-on's *Live TV (PVR)* settings. Requires the
 - Settings: credentials, content language, hide-unentitled, EPG days
 - Friendly errors (prompts to open settings when credentials are missing/wrong)
 - Branded icon/fanart (the MAGIO TV logo, extracted from the official app)
+
+## Optional: red lock indicator in Estuary's list view
+
+Locked titles always show in **red text**. To also get a **red padlock** on
+locked playable items and a **red folder** on fully-locked folders in Kodi's
+default Estuary *list* views, run:
+
+```bash
+bash scripts/patch_estuary_lock.sh   # then restart Kodi
+```
+
+Estuary's list views draw a fixed folder/overlay glyph and ignore an add-on's
+custom icon, and Kodi's built-in "locked" overlay is overwritten by the
+watched-state thumb-loader — so this installs a *user-space* copy of Estuary
+that reads the add-on's `ParentalLocked` property (which does survive). Re-run
+it after a Kodi update (a newer bundled Estuary would otherwise take over);
+remove it by deleting `~/.kodi/addons/skin.estuary` and restarting Kodi.
 
 ## Build & install (single zip)
 
