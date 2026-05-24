@@ -16,7 +16,8 @@ Works as a video add-on **and** integrates with Kodi's native Live TV guide:
   the channels (the add-on never toggles the PVR client — doing so mid-run
   crashes Kodi). A background **service** keeps the EPG refreshed; iptvsimple
   re-reads the files on its own refresh interval. Catchup is wired via the EPG.
-- Auth via add-on settings; titles needing another subscription are marked 🔒
+- Auth via add-on settings; titles needing another subscription are shown in
+  **red** (red folder/film icon + red label)
 - Validated end-to-end against the live API (channels, VOD, M3U/EPG generation,
   pvr.iptvsimple config).
 

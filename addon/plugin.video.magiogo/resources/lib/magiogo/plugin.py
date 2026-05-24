@@ -78,35 +78,36 @@ def _set_info(li, title, plot="", year=None, duration=0, mediatype=""):
         li.setInfo("video", info)
 
 
-# A locked item is shown dimmed (grey label) with a padlock thumbnail. Kodi's
-# label font has no padlock glyph, so the lock is a bundled image, not text.
-LOCK_IMG = "special://home/addons/plugin.video.magiogo/resources/locked.png"
+# Locked items are shown in red: a red icon plus a red label. Kodi's "List"
+# view binds the small image to ListItem.Icon, so only the icon is recoloured
+# (red folder for folders, red film for playable items) — the real poster/thumb
+# is left untouched so artwork (poster/wall) views still show actual artwork.
+RES = "special://home/addons/plugin.video.magiogo/resources"
+FOLDER_RED = RES + "/folder_red.png"
+VIDEO_RED = RES + "/video_red.png"
 
 
-def _grey(label):
-    return f"[COLOR gray]{label}[/COLOR]"
+def _red(label):
+    return f"[COLOR red]{label}[/COLOR]"
 
 
-def _locked_art(art):
-    # Override every artwork key so the padlock shows in any view (list uses
-    # icon/thumb; poster/wall views use poster/landscape).
+def _locked_art(art, icon):
     a = dict(art or {})
-    for key in ("icon", "thumb", "poster", "landscape"):
-        a[key] = LOCK_IMG
+    a["icon"] = icon
     return a
 
 
 def add_folder(label, *, art=None, plot="", locked=False, **params):
-    li = xbmcgui.ListItem(label=_grey(label) if locked else label)
-    li.setArt(_locked_art(art) if locked else (art or {}))
+    li = xbmcgui.ListItem(label=_red(label) if locked else label)
+    li.setArt(_locked_art(art, FOLDER_RED) if locked else (art or {}))
     _set_info(li, label, plot=plot)  # clean title (no colour markup) for metadata
     xbmcplugin.addDirectoryItem(HANDLE, url(**params), li, isFolder=True)
 
 
 def add_playable(label, *, action, id, art=None, plot="", year=None,
                  duration=0, mediatype="video", locked=False):
-    li = xbmcgui.ListItem(label=_grey(label) if locked else label)
-    li.setArt(_locked_art(art) if locked else (art or {}))
+    li = xbmcgui.ListItem(label=_red(label) if locked else label)
+    li.setArt(_locked_art(art, VIDEO_RED) if locked else (art or {}))
     _set_info(li, label, plot=plot, year=year, duration=duration, mediatype=mediatype)
     li.setProperty("IsPlayable", "true")
     xbmcplugin.addDirectoryItem(HANDLE, url(action=action, id=id), li, isFolder=False)
