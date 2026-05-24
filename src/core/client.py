@@ -17,6 +17,7 @@ import requests
 INIT_URL = "https://skgo.magio.tv/v2/auth/init"
 LOGIN_URL = "https://skgo.magio.tv/v2/auth/login"
 TOKENS_URL = "https://skgo.magio.tv/v2/auth/tokens"
+MY_DEVICES_URL = "https://skgo.magio.tv/v2/home/my-devices"
 CHANNELS_URL = "https://skgo.magio.tv/v2/television/channels"
 CATEGORIES_URL = "https://skgo.magio.tv/home/categories"
 STREAM_URL = "https://skgo.magio.tv/v2/television/stream-url"
@@ -217,6 +218,25 @@ class MagioClient:
     # ------------------------------------------------------------------ #
     # data
     # ------------------------------------------------------------------ #
+    def get_devices(self):
+        """Return the account's registered devices (``/v2/home/my-devices``).
+
+        The response groups devices into ``thisDevice``, ``smallScreenDevices``
+        and ``stbAndBigScreenDevices`` (plus remaining-slot counts). Uses the
+        refreshed token only, so it never registers a new device.
+        """
+        _ok, access = self._refresh_tokens()
+        headers = self._base_headers()
+        headers["authorization"] = "Bearer " + access
+        req = requests.get(
+            MY_DEVICES_URL,
+            params={"language": self.cfg.language.lower()},
+            headers=headers,
+        ).json()
+        if not req.get("success"):
+            raise MagioError(req.get("errorMessage") or "could not load devices")
+        return req
+
     def get_channels(self):
         """Return ``{channel_id: {name, logo, group}}`` for all LIVE channels."""
         _ok, access = self._refresh_tokens()

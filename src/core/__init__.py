@@ -6,7 +6,7 @@ everything is driven through a :class:`~core.config.Config` whose ``log``
 callback and file paths are supplied by each front-end.
 """
 
-from .config import Config
+from .config import Config, generate_device_id, default_device_name
 from .client import MagioClient, MagioError
 from .playlist import build_playlist, build_kodi_playlist
 from .epg import build_epg
@@ -22,6 +22,8 @@ from .backstage import Backstage
 
 __all__ = [
     "Config",
+    "generate_device_id",
+    "default_device_name",
     "MagioClient",
     "MagioError",
     "build_playlist",

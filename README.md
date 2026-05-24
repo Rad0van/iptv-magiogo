@@ -12,8 +12,12 @@ You can install and run the service using [docker compose](./docker-compose.yml)
 Don't forget to update environment variables!
 
 However, if you want to run it outside docker, install packages from [requirements.txt](./requirements.txt) and run <kbd>[src/main.py](./src/main.py)</kbd> with the following environment variables:
-`MAGIO_USERNAME, MAGIO_PASSWORD, HOST` (optional: `MAGIO_DEVICE_NAME` — the
-device label shown in your Magio account; defaults to the machine's hostname)
+`MAGIO_USERNAME, MAGIO_PASSWORD, HOST`. Optional device identity:
+`MAGIO_DEVICE_NAME` (label in your Magio account; default = hostname),
+`MAGIO_DEVICE_ID` (the `dsid`; default = a unique value generated once and
+persisted to `.magio_device_id`), `MAGIO_DEVICE_TYPE` (default `OTT_IPAD`;
+`OTT_TV_ANDROID` registers as a big-screen device). `GET /devices` lists the
+devices registered to the account.
 
 ```bash
 $ pip install -r requirements.txt

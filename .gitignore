@@ -2,6 +2,7 @@
 .env
 .ruff_cache/
 .magio_token.json
+.magio_device_id
 .epg.xmltv
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,visualstudiocode,pycharm

@@ -14,6 +14,7 @@ from core import (
     rsql,
     kodi_inputstream_props,
     build_vod_m3u,
+    generate_device_id,
 )
 
 host, port = os.environ.get("HOST", "0.0.0.0:4589").split(":")
@@ -21,10 +22,34 @@ port = int(port)
 
 EPG_CACHE = ".epg.xmltv"
 
-# Device name defaults to the hostname (Config's default); override with env.
-_cfg_extra = {}
+DEVICE_ID_FILE = ".magio_device_id"
+
+
+def _device_id():
+    """Stable, unique device id: env override, else a persisted random one."""
+    env = os.environ.get("MAGIO_DEVICE_ID")
+    if env:
+        return env
+    try:
+        with open(DEVICE_ID_FILE, encoding="utf-8") as f:
+            saved = f.read().strip()
+        if saved:
+            return saved
+    except FileNotFoundError:
+        pass
+    did = generate_device_id()
+    with open(DEVICE_ID_FILE, "w", encoding="utf-8") as f:
+        f.write(did)
+    return did
+
+
+# device_name defaults to the hostname (Config's default); both it and the
+# device type/id are overridable via env.
+_cfg_extra = {"device_id": _device_id()}
 if os.environ.get("MAGIO_DEVICE_NAME"):
     _cfg_extra["device_name"] = os.environ["MAGIO_DEVICE_NAME"]
+if os.environ.get("MAGIO_DEVICE_TYPE"):
+    _cfg_extra["device_type"] = os.environ["MAGIO_DEVICE_TYPE"]
 cfg = Config(
     username=os.environ["MAGIO_USERNAME"],
     password=os.environ["MAGIO_PASSWORD"],
@@ -33,6 +58,18 @@ cfg = Config(
 )
 client = MagioClient(cfg)
 vod = VodClient(client)
+
+
+@route("/devices")
+def magio_devices():
+    """List the devices registered to the account (read-only)."""
+    import json
+    response.content_type = "application/json; charset=UTF-8"
+    try:
+        return json.dumps(client.get_devices(), ensure_ascii=False, indent=2)
+    except MagioError as e:
+        response.status = 502
+        return json.dumps({"error": str(e)})
 
 
 @route("/service/playlist")

@@ -5,6 +5,8 @@
         <setting id="password" type="text" option="hidden" label="30002" default=""/>
         <setting id="language" type="labelenum" values="SK|CS|EN" label="30003" default="SK"/>
         <setting id="device_name" type="text" label="30004" default=""/>
+        <setting id="device_id" type="text" label="30005" default=""/>
+        <setting id="device_type" type="text" label="30006" default="OTT_IPAD"/>
     </category>
     <category label="30010">
         <setting id="vod_free_only" type="bool" label="30011" default="false"/>

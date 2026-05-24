@@ -144,6 +144,8 @@ def root():
     add_folder("Set up Live TV guide (PVR)", action="setup_pvr",
                plot="Generate the channel list + EPG and configure the "
                     "PVR IPTV Simple Client so channels appear in Kodi's TV guide.")
+    add_folder("My devices", action="devices",
+               plot="Devices registered to your Magio GO account.")
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -488,6 +490,52 @@ def play_vod(content_id):
 
 
 # --------------------------------------------------------------------------- #
+# devices (read-only)
+# --------------------------------------------------------------------------- #
+def devices():
+    """Show the devices registered to the account (/v2/home/my-devices)."""
+    try:
+        data = client().get_devices()
+    except MagioError as e:
+        notify(e)
+        xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+        return
+
+    seen = set()
+
+    def add_device(d, marker=""):
+        if d.get("id") in seen:
+            return
+        seen.add(d.get("id"))
+        name = d.get("name") or d.get("deviceNickname") or "(unnamed)"
+        cat = d.get("category", "")
+        last = (d.get("lastLoggedOn") or "")[:10]
+        li = xbmcgui.ListItem(label=name + marker)
+        li.setLabel2(" · ".join(x for x in (cat, last) if x))
+        _set_info(li, name, plot=(f"Category: {cat}\n"
+                                  f"Last logged on: {last}\n"
+                                  f"Magio device id: {d.get('id')}"))
+        xbmcplugin.addDirectoryItem(HANDLE, url(action="devices"), li, isFolder=False)
+
+    if data.get("thisDevice"):
+        add_device(data["thisDevice"], "  [This device]")
+    for d in data.get("smallScreenDevices") or []:
+        add_device(d)
+    for d in data.get("stbAndBigScreenDevices") or []:
+        add_device(d)
+
+    rem = ("Free slots — mobile/tablet: "
+           f"{data.get('remainingSmallScreenDevicesCount', '?')}, "
+           f"STB: {data.get('remainingSTBDevicesCount', '?')}, "
+           f"big screen: {data.get('remainingBigScreenDevicesCount', '?')}")
+    info = xbmcgui.ListItem(label=f"[COLOR gray]{rem}[/COLOR]")
+    xbmcplugin.addDirectoryItem(HANDLE, url(action="devices"), info, isFolder=False)
+
+    xbmcplugin.setContent(HANDLE, "files")
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+# --------------------------------------------------------------------------- #
 # dispatch
 # --------------------------------------------------------------------------- #
 ROUTES = {
@@ -497,6 +545,7 @@ ROUTES = {
     "vod_search": vod_search,
     "vod_series_genres": vod_series_genres,
     "setup_pvr": setup_pvr,
+    "devices": devices,
 }
 
 
@@ -527,7 +576,7 @@ def _dispatch(action, args):
 AUTH_ACTIONS = {
     "live", "vod", "vod_search", "vod_series_genres", "vod_series_genre",
     "vod_category", "vod_series_detail", "cms_menu", "cms_page", "cms_row",
-    "play_live", "play_vod", "setup_pvr",
+    "play_live", "play_vod", "setup_pvr", "devices",
 }
 
 

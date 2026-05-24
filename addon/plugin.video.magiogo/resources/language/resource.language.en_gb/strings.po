@@ -28,6 +28,14 @@ msgctxt "#30004"
 msgid "Device name (blank = hostname)"
 msgstr ""
 
+msgctxt "#30005"
+msgid "Device ID (blank = auto-generated, unique)"
+msgstr ""
+
+msgctxt "#30006"
+msgid "Device type (OTT_IPAD; OTT_TV_ANDROID = big screen)"
+msgstr ""
+
 msgctxt "#30010"
 msgid "VOD"
 msgstr ""

@@ -5,6 +5,7 @@ server, add-on settings for Kodi) and supplies the file paths and a ``log``
 callback. Defaults capture the values the original scripts hardcoded.
 """
 
+import secrets
 import socket
 from dataclasses import dataclass, field
 from typing import Callable
@@ -21,6 +22,15 @@ def default_device_name() -> str:
     except Exception:
         name = ""
     return name or "magiogo"
+
+
+def generate_device_id() -> str:
+    """A fresh, unique device id (``dsid``) — 12 lowercase hex, MAC-like.
+
+    Each install should persist its own value rather than share a constant,
+    so Magio sees distinct devices (and a well-known id can't be singled out).
+    """
+    return secrets.token_hex(6)
 
 # Browser-ish UA used for the JSON API calls.
 DEFAULT_USER_AGENT = (

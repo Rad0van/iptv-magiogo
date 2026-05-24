@@ -11,7 +11,7 @@ import xbmcaddon
 import xbmcgui
 import xbmcvfs
 
-from core import Config, MagioClient, VodClient, Backstage
+from core import Config, MagioClient, VodClient, Backstage, generate_device_id
 
 ADDON = xbmcaddon.Addon()
 ADDON_ID = ADDON.getAddonInfo("id")
@@ -55,12 +55,24 @@ def profile_dir():
     return path
 
 
+def _device_id():
+    """Stable, unique device id; generated once and persisted in settings."""
+    did = ADDON.getSetting("device_id")
+    if not did:
+        did = generate_device_id()
+        ADDON.setSetting("device_id", did)
+    return did
+
+
 def make_config():
     # Empty device_name -> Config defaults it to the hostname.
-    extra = {}
+    extra = {"device_id": _device_id()}
     device_name = ADDON.getSetting("device_name")
     if device_name:
         extra["device_name"] = device_name
+    device_type = ADDON.getSetting("device_type")
+    if device_type:
+        extra["device_type"] = device_type
     return Config(
         username=ADDON.getSetting("username"),
         password=ADDON.getSetting("password"),
