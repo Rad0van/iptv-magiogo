@@ -19,7 +19,8 @@ Works as a video add-on **and** integrates with Kodi's native Live TV guide:
 - Auth via add-on settings; titles needing another subscription are shown in
   **red** (red label everywhere; with the optional skin patch below, a red
   padlock on locked items and a red folder on fully-locked folders)
-- **My devices** menu — lists the devices registered to your account
+- **My devices** menu — lists the devices registered to your account; remove one
+  via its context menu (long-press / `c`) → *Remove device*
 - Device identity in settings: **Device name** (default hostname), **Device ID**
   (auto-generated unique `dsid`, persisted), **Device type** (`OTT_IPAD`, or
   `OTT_TV_ANDROID` for a big-screen device)

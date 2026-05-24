@@ -16,8 +16,9 @@ However, if you want to run it outside docker, install packages from [requiremen
 `MAGIO_DEVICE_NAME` (label in your Magio account; default = hostname),
 `MAGIO_DEVICE_ID` (the `dsid`; default = a unique value generated once and
 persisted to `.magio_device_id`), `MAGIO_DEVICE_TYPE` (default `OTT_IPAD`;
-`OTT_TV_ANDROID` registers as a big-screen device). `GET /devices` lists the
-devices registered to the account.
+`OTT_TV_ANDROID` registers as a big-screen device — only if your subscription
+allows it). `GET /devices` lists the devices registered to the account;
+`GET /devices/delete/<id>` removes one (id from `/devices`).
 
 ```bash
 $ pip install -r requirements.txt

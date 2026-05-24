@@ -11,6 +11,7 @@ M3U/XMLTV for pvr.iptvsimple) is a later milestone.
 import sys
 from urllib.parse import urlencode, parse_qsl, quote
 
+import xbmc
 import xbmcgui
 import xbmcplugin
 
@@ -515,6 +516,9 @@ def devices():
         _set_info(li, name, plot=(f"Category: {cat}\n"
                                   f"Last logged on: {last}\n"
                                   f"Magio device id: {d.get('id')}"))
+        li.addContextMenuItems(
+            [("Remove device",
+              "RunPlugin(%s)" % url(action="device_remove", id=d.get("id")))])
         xbmcplugin.addDirectoryItem(HANDLE, url(action="devices"), li, isFolder=False)
 
     if data.get("thisDevice"):
@@ -533,6 +537,18 @@ def devices():
 
     xbmcplugin.setContent(HANDLE, "files")
     xbmcplugin.endOfDirectory(HANDLE)
+
+
+def device_remove(device_id):
+    """Context-menu action: remove a device, then refresh the list."""
+    if not xbmcgui.Dialog().yesno("Magio GO", "Remove this device from your account?"):
+        return
+    try:
+        client().remove_device(device_id)
+        notify("Device removed")
+    except MagioError as e:
+        notify(e)
+    xbmc.executebuiltin("Container.Refresh")
 
 
 # --------------------------------------------------------------------------- #
@@ -568,6 +584,8 @@ def _dispatch(action, args):
         play_live(args)
     elif action == "play_vod":
         play_vod(args["id"])
+    elif action == "device_remove":
+        device_remove(args["id"])
     else:
         log(f"unknown action: {action}")
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
@@ -576,7 +594,7 @@ def _dispatch(action, args):
 AUTH_ACTIONS = {
     "live", "vod", "vod_search", "vod_series_genres", "vod_series_genre",
     "vod_category", "vod_series_detail", "cms_menu", "cms_page", "cms_row",
-    "play_live", "play_vod", "setup_pvr", "devices",
+    "play_live", "play_vod", "setup_pvr", "devices", "device_remove",
 }
 
 

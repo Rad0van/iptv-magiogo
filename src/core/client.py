@@ -18,6 +18,7 @@ INIT_URL = "https://skgo.magio.tv/v2/auth/init"
 LOGIN_URL = "https://skgo.magio.tv/v2/auth/login"
 TOKENS_URL = "https://skgo.magio.tv/v2/auth/tokens"
 MY_DEVICES_URL = "https://skgo.magio.tv/v2/home/my-devices"
+DELETE_DEVICE_URL = "https://skgo.magio.tv/home/deleteDevice"
 CHANNELS_URL = "https://skgo.magio.tv/v2/television/channels"
 CATEGORIES_URL = "https://skgo.magio.tv/home/categories"
 STREAM_URL = "https://skgo.magio.tv/v2/television/stream-url"
@@ -236,6 +237,25 @@ class MagioClient:
         if not req.get("success"):
             raise MagioError(req.get("errorMessage") or "could not load devices")
         return req
+
+    def remove_device(self, device_id):
+        """Remove a registered device by its Magio device id.
+
+        ``GET /home/deleteDevice?id=<id>`` (the id is the numeric device id from
+        :meth:`get_devices`, not the ``dsid``). Raises :class:`MagioError` on
+        failure (e.g. the device is within its un-removable grace period).
+        """
+        _ok, access = self._refresh_tokens()
+        headers = self._base_headers()
+        headers["authorization"] = "Bearer " + access
+        req = requests.get(
+            DELETE_DEVICE_URL,
+            params={"id": device_id, "language": self.cfg.language.lower()},
+            headers=headers,
+        ).json()
+        if not req.get("success"):
+            raise MagioError(req.get("errorMessage") or "could not remove device")
+        return True
 
     def get_channels(self):
         """Return ``{channel_id: {name, logo, group}}`` for all LIVE channels."""

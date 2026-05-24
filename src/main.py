@@ -72,6 +72,19 @@ def magio_devices():
         return json.dumps({"error": str(e)})
 
 
+@route("/devices/delete/<dev_id>")
+def magio_device_delete(dev_id):
+    """Remove a device by its numeric id (see /devices)."""
+    import json
+    response.content_type = "application/json; charset=UTF-8"
+    try:
+        client.remove_device(dev_id)
+        return json.dumps({"success": True, "removed": dev_id})
+    except MagioError as e:
+        response.status = 502
+        return json.dumps({"error": str(e)})
+
+
 @route("/service/playlist")
 def magio_playlist():
     t = build_playlist(client, f"http://{host}:{port}/service/")
