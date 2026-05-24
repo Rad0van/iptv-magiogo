@@ -24,6 +24,10 @@ msgctxt "#30003"
 msgid "Content language"
 msgstr ""
 
+msgctxt "#30004"
+msgid "Device name (blank = hostname)"
+msgstr ""
+
 msgctxt "#30010"
 msgid "VOD"
 msgstr ""

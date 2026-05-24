@@ -12,7 +12,8 @@ You can install and run the service using [docker compose](./docker-compose.yml)
 Don't forget to update environment variables!
 
 However, if you want to run it outside docker, install packages from [requirements.txt](./requirements.txt) and run <kbd>[src/main.py](./src/main.py)</kbd> with the following environment variables:
-`MAGIO_USERNAME, MAGIO_PASSWORD, HOST`
+`MAGIO_USERNAME, MAGIO_PASSWORD, HOST` (optional: `MAGIO_DEVICE_NAME` — the
+device label shown in your Magio account; defaults to the machine's hostname)
 
 ```bash
 $ pip install -r requirements.txt

@@ -56,12 +56,18 @@ def profile_dir():
 
 
 def make_config():
+    # Empty device_name -> Config defaults it to the hostname.
+    extra = {}
+    device_name = ADDON.getSetting("device_name")
+    if device_name:
+        extra["device_name"] = device_name
     return Config(
         username=ADDON.getSetting("username"),
         password=ADDON.getSetting("password"),
         token_path=os.path.join(profile_dir(), ".magio_token.json"),
         language=ADDON.getSetting("language") or "SK",
         log=log,
+        **extra,
     )
 
 

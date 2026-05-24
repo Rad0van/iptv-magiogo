@@ -5,8 +5,22 @@ server, add-on settings for Kodi) and supplies the file paths and a ``log``
 callback. Defaults capture the values the original scripts hardcoded.
 """
 
+import socket
 from dataclasses import dataclass, field
 from typing import Callable
+
+
+def default_device_name() -> str:
+    """Default label shown for this device in the Magio account.
+
+    Uses the machine's (short) hostname so each install identifies itself;
+    falls back to a constant if the hostname can't be determined.
+    """
+    try:
+        name = socket.gethostname().split(".", 1)[0].strip()
+    except Exception:
+        name = ""
+    return name or "magiogo"
 
 # Browser-ish UA used for the JSON API calls.
 DEFAULT_USER_AGENT = (
@@ -35,7 +49,7 @@ class Config:
     token_path: str
 
     device_id: str = "ab2731523db7"
-    device_name: str = "hruska"
+    device_name: str = field(default_factory=default_device_name)
     device_type: str = "OTT_IPAD"
     profile: str = "p5"
     drm: str = "verimatrix"

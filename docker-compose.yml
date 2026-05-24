@@ -13,3 +13,5 @@ services:
       MAGIO_USERNAME: ${MAGIO_USERNAME}
       MAGIO_PASSWORD: ${MAGIO_PASSWORD}
       HOST: ${HOST}
+      # Optional device label in your Magio account (defaults to the hostname).
+      MAGIO_DEVICE_NAME: ${MAGIO_DEVICE_NAME:-}

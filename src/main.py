@@ -21,10 +21,15 @@ port = int(port)
 
 EPG_CACHE = ".epg.xmltv"
 
+# Device name defaults to the hostname (Config's default); override with env.
+_cfg_extra = {}
+if os.environ.get("MAGIO_DEVICE_NAME"):
+    _cfg_extra["device_name"] = os.environ["MAGIO_DEVICE_NAME"]
 cfg = Config(
     username=os.environ["MAGIO_USERNAME"],
     password=os.environ["MAGIO_PASSWORD"],
     token_path=".magio_token.json",
+    **_cfg_extra,
 )
 client = MagioClient(cfg)
 vod = VodClient(client)
