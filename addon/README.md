@@ -37,22 +37,25 @@ periodically; toggle it in the add-on's *Live TV (PVR)* settings. Requires the
 - Friendly errors (prompts to open settings when credentials are missing/wrong)
 - Branded icon/fanart (the MAGIO TV logo, extracted from the official app)
 
-## Optional: red lock indicator in Estuary's list view
+## Optional: red lock indicator in Estuary
 
 Locked titles always show in **red text**. To also get a **red padlock** on
-locked playable items and a **red folder** on fully-locked folders in Kodi's
-default Estuary *list* views, run:
+locked playable items and a **red folder** on fully-locked folders, run:
 
 ```bash
 bash scripts/patch_estuary_lock.sh   # then restart Kodi
 ```
 
-Estuary's list views draw a fixed folder/overlay glyph and ignore an add-on's
-custom icon, and Kodi's built-in "locked" overlay is overwritten by the
-watched-state thumb-loader — so this installs a *user-space* copy of Estuary
-that reads the add-on's `ParentalLocked` property (which does survive). Re-run
-it after a Kodi update (a newer bundled Estuary would otherwise take over);
-remove it by deleting `~/.kodi/addons/skin.estuary` and restarting Kodi.
+This covers both **list** views (List/WideList — the row glyph becomes the red
+folder/padlock) and **poster/wall** views (Poster/Wall/InfoWall — a red badge
+in the poster corner).
+
+Estuary's views draw a fixed glyph / the poster and ignore an add-on's custom
+icon, and Kodi's built-in "locked" overlay is overwritten by the watched-state
+thumb-loader — so this installs a *user-space* copy of Estuary that reads the
+add-on's `ParentalLocked` property (which does survive). Re-run it after a Kodi
+update (a newer bundled Estuary would otherwise take over); remove it by
+deleting `~/.kodi/addons/skin.estuary` and restarting Kodi.
 
 ## Build & install (single zip)
 
