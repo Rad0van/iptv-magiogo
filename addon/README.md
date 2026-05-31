@@ -80,6 +80,27 @@ Each install identifies itself to Magio as one **device** (Settings → *Account
 the current one, and shows the free-slot counts per category. Remove a device
 from its context menu (long-press / `c` → *Remove device*).
 
+### Sharing one slot across machines
+
+To let two installs (e.g. an HTPC and a laptop) count as the **same** device and
+share a single slot, they must match on **both** the *Device ID* (`dsid`) **and**
+the *Device name* — Magio keys a device on the `(dsid + name)` pair, so the same
+`dsid` under a different name registers as a *separate* device that needs its own
+slot.
+
+**Copying the settings is not enough — also clear the saved token.** A login is
+persisted to `.magio_token.json` (in the add-on profile dir) and is bound to the
+device identity it was created with. The add-on only *refreshes* that token on
+later runs and never re-sends the device name/`dsid`, so editing the settings
+afterwards has no effect — you'll still authenticate as the old device and, once
+the account is at its device limit, every channel fails with *"This content is
+not available for you"* (the server's real error is `BENEFIT_DEVICE_MAX_LIMIT`).
+
+After changing *Device ID* or *Device name* to match another install, **delete
+`.magio_token.json`** so the next launch does a fresh login and rebinds to the
+shared device. Confirm via **My devices**: the current device should show as
+*registered*.
+
 ## Build & install (single zip)
 
 ```bash
