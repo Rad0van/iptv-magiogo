@@ -342,5 +342,7 @@ addon/plugin.video.magiogo/plugin.video.magiogo.zip
 !addon/plugin.video.magiogo/resources/lib/
 !addon/plugin.video.magiogo/resources/lib/**
 addon/plugin.video.magiogo/resources/lib/core/
+# ...and keep compiled bytecode out (the broad re-include above would track it).
+addon/plugin.video.magiogo/resources/lib/**/__pycache__/
 addon/plugin.video.magiogo/resources/lib/xmltv.py
 addon/plugin.video.magiogo/resources/lib/roman.py
