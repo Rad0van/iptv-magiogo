@@ -64,7 +64,7 @@ class Config:
     profile: str = "p5"
     drm: str = "verimatrix"
     language: str = "SK"
-    app_version: str = "4.0.21"
+    app_version: str = "5.0.1.30050001"
     os_version: str = "18.0"
 
     # 24i Backstage CMS that drives the VOD UI (menus/pages/rows).
