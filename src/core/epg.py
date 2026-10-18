@@ -70,8 +70,11 @@ def build_epg(
                 "desc": [(programme.description, "")],
                 "icon": [{"src": programme.poster}, {"src": programme.thumbnail}],
                 "length": {"units": "seconds", "length": str(programme.duration)},
-                "start": programme.start_time.strftime("%Y%m%d%H%M%S"),
-                "stop": programme.end_time.strftime("%Y%m%d%H%M%S"),
+                # Times are UTC (client builds them with utcfromtimestamp);
+                # emit an explicit +0000 offset so pvr.iptvsimple doesn't fall
+                # back to interpreting them in the viewer's local timezone.
+                "start": programme.start_time.strftime("%Y%m%d%H%M%S") + " +0000",
+                "stop": programme.end_time.strftime("%Y%m%d%H%M%S") + " +0000",
                 "title": [(programme.title, "")],
             }
 
