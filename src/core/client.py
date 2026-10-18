@@ -363,6 +363,77 @@ class MagioClient:
 
         return self.cfg.no_access_url
 
+    def get_archive_channels(self):
+        """Return ``[{id, name, logo, archive_days}]`` for channels that expose a
+        catch-up archive (``hasArchive``); ``archive_days`` is the replay depth."""
+        _ok, access = self._refresh_tokens()
+        headers = self._base_headers()
+        headers["authorization"] = "Bearer " + access
+        items = requests.get(
+            CHANNELS_URL,
+            params={"list": "LIVE", "queryScope": "LIVE"},
+            headers=headers,
+        ).json().get("items", [])
+        out = []
+        for it in items:
+            ch = it.get("channel", {})
+            if not ch.get("hasArchive"):
+                continue
+            archive_ms = ch.get("archive") or 0
+            out.append({
+                "id": str(ch["channelId"]),
+                "name": ch["name"],
+                "logo": ch.get("logoUrl", ""),
+                "archive_days": int(archive_ms // 86400000) or 7,
+            })
+        return out
+
+    def get_archive_programmes(self, channel_id, days=7):
+        """Return finished broadcasts for a channel over the last ``days`` days.
+
+        Each item is ``{title, start, end, plot, art}`` with ``start``/``end`` as
+        UNIX seconds (what :meth:`get_catchup` consumes); only already-ended
+        programmes are returned, newest first.
+        """
+        cid = int(str(channel_id).split(".")[0])
+        _ok, access = self._refresh_tokens()
+        headers = self._base_headers()
+        headers["authorization"] = "Bearer " + access
+
+        now = datetime.utcnow()
+        start_day = (now - timedelta(days=int(days))).strftime("%Y-%m-%d")
+        end_day = now.strftime("%Y-%m-%d")
+        filter = (
+            "channel.id=in=(%d);startTime=ge=%sT00:00:00.000Z;"
+            "endTime=le=%sT23:59:59.999Z" % (cid, start_day, end_day)
+        )
+        items = requests.get(
+            EPG_URL,
+            params={"filter": filter, "limit": 50, "offset": 0, "lang": "SK"},
+            headers=headers,
+        ).json().get("items", [])
+
+        now_s = int((now - datetime(1970, 1, 1)).total_seconds())
+        progs = []
+        for ch in items:
+            for p in ch.get("programs", []):
+                start = int(p.get("startTimeUTC") or 0) // 1000
+                end = int(p.get("endTimeUTC") or 0) // 1000
+                if not start or not end or end > now_s:
+                    continue
+                pr = p.get("program", {}) or {}
+                images = pr.get("images") or []
+                thumb = images[0] if images and isinstance(images[0], str) else ""
+                progs.append({
+                    "title": pr.get("title") or p.get("programEpisodeTitle") or "?",
+                    "start": start,
+                    "end": end,
+                    "plot": pr.get("description") or "",
+                    "art": {"thumb": thumb, "poster": thumb} if thumb else {},
+                })
+        progs.sort(key=lambda x: x["start"], reverse=True)
+        return progs
+
     def get_epg(self, channels, from_date, to_date):
         """Return ``{channel_id: [Programme, ...]}`` between the two dates."""
         from_date = from_date.replace(hour=0, minute=0, second=0, microsecond=0)

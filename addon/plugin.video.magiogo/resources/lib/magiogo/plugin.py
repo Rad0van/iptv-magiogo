@@ -140,6 +140,8 @@ def _item_label(it):
 # --------------------------------------------------------------------------- #
 def root():
     add_folder("Live TV", action="live", plot="Live channels (play directly)")
+    add_folder("Archive (catch-up)", action="archive",
+               plot="Replay programmes broadcast in the last few days.")
     add_folder("VOD — Movies, Series, Documentaries", action="vod",
                plot="Video on demand")
     add_folder("Set up Live TV guide (PVR)", action="setup_pvr",
@@ -177,6 +179,83 @@ def live_channels():
         xbmcplugin.addDirectoryItem(
             HANDLE, url(action="play_live", id=cid), li, isFolder=False
         )
+    xbmcplugin.setContent(HANDLE, "videos")
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+# --------------------------------------------------------------------------- #
+# archive (catch-up): channel -> programme -> airing (day)
+# --------------------------------------------------------------------------- #
+def _airing_label(p):
+    import time
+    return time.strftime("%a %d.%m. %H:%M", time.localtime(p["start"]))
+
+
+def _add_airing(label, cid, p):
+    li = xbmcgui.ListItem(label=label)
+    if p.get("art"):
+        li.setArt(p["art"])
+    _set_info(li, label, plot=p.get("plot", ""),
+              duration=max(0, p["end"] - p["start"]), mediatype="video")
+    li.setProperty("IsPlayable", "true")
+    xbmcplugin.addDirectoryItem(
+        HANDLE, url(action="play_live", id=cid, utc=p["start"], utcend=p["end"]),
+        li, isFolder=False,
+    )
+
+
+def archive():
+    try:
+        channels = client().get_archive_channels()
+    except MagioError as e:
+        notify(e)
+        channels = []
+    for ch in channels:
+        art = {"thumb": ch["logo"], "icon": ch["logo"]} if ch.get("logo") else None
+        add_folder(ch["name"], art=art, action="archive_channel",
+                   id=ch["id"], days=ch["archive_days"],
+                   plot="Catch-up archive: last %d days" % ch["archive_days"])
+    xbmcplugin.setContent(HANDLE, "videos")
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def archive_channel(cid, days):
+    try:
+        progs = client().get_archive_programmes(cid, days)
+    except MagioError as e:
+        notify(e)
+        progs = []
+    # group by programme title, keeping the newest-first order of first airing
+    grouped, order = {}, []
+    for p in progs:
+        t = p["title"]
+        if t not in grouped:
+            grouped[t] = []
+            order.append(t)
+        grouped[t].append(p)
+    for t in order:
+        airings = grouped[t]
+        if len(airings) == 1:
+            # a one-off (film, single broadcast): play it straight away
+            p = airings[0]
+            _add_airing("%s — %s" % (t, _airing_label(p)), cid, p)
+        else:
+            add_folder("%s  (%d)" % (t, len(airings)), art=airings[0]["art"] or None,
+                       action="archive_programme", id=cid, days=days, title=t,
+                       plot=airings[0]["plot"])
+    xbmcplugin.setContent(HANDLE, "videos")
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def archive_programme(cid, title, days):
+    try:
+        progs = client().get_archive_programmes(cid, days)
+    except MagioError as e:
+        notify(e)
+        progs = []
+    for p in progs:
+        if p["title"] == title:
+            _add_airing(_airing_label(p), cid, p)
     xbmcplugin.setContent(HANDLE, "videos")
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -576,6 +655,7 @@ def device_remove(device_id):
 ROUTES = {
     None: root,
     "live": live_channels,
+    "archive": archive,
     "vod": vod_menu,
     "vod_search": vod_search,
     "vod_series_genres": vod_series_genres,
@@ -599,6 +679,10 @@ def _dispatch(action, args):
         vod_series_genre(args["id"], int(args.get("offset", 0)))
     elif action == "vod_series_detail":
         vod_series_detail(args["id"])
+    elif action == "archive_channel":
+        archive_channel(args["id"], args.get("days", 7))
+    elif action == "archive_programme":
+        archive_programme(args["id"], args["title"], args.get("days", 7))
     elif action == "play_live":
         play_live(args)
     elif action == "play_vod":
@@ -611,7 +695,8 @@ def _dispatch(action, args):
 
 
 AUTH_ACTIONS = {
-    "live", "vod", "vod_search", "vod_series_genres", "vod_series_genre",
+    "live", "archive", "archive_channel", "archive_programme",
+    "vod", "vod_search", "vod_series_genres", "vod_series_genre",
     "vod_category", "vod_series_detail", "cms_menu", "cms_page", "cms_row",
     "play_live", "play_vod", "setup_pvr", "devices", "device_remove",
 }
