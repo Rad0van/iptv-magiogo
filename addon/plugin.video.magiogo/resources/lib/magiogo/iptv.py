@@ -76,11 +76,23 @@ def _iptvsimple_data_dir():
     )
 
 
+def _instance_m3u_path(root):
+    """Current ``m3uPath`` of an iptvsimple instance (``""`` if unset/default)."""
+    for setting in root.findall("setting"):
+        if setting.get("id") == "m3uPath":
+            return (setting.text or "").strip()
+    return ""
+
+
 def configure_iptvsimple(m3u_path, epg_path):
     """Point pvr.iptvsimple at our local files via its instance settings.
 
-    Returns True if at least one settings file was updated. Never toggles the
-    add-on; the change applies on the next Kodi restart.
+    Only an instance we *own* is touched: one whose ``m3uPath`` is still unset
+    (a fresh/migrated instance we can adopt) or already points at our playlist.
+    Instances configured for a different source — e.g. a separate TA3 instance —
+    are left strictly alone, so we never hijack another add-on's PVR. Returns
+    True if an instance was configured. Never toggles the add-on; changes apply
+    on the next Kodi restart.
     """
     desired = dict(_DESIRED, m3uPath=m3u_path, epgPath=epg_path)
     updated = False
@@ -91,6 +103,11 @@ def configure_iptvsimple(m3u_path, epg_path):
         try:
             tree = ET.parse(path)
             root = tree.getroot()
+            current = _instance_m3u_path(root)
+            # A non-empty path that isn't ours belongs to another add-on.
+            if current and current != m3u_path:
+                log(f"leaving foreign iptvsimple instance alone: {path}")
+                continue
             for setting in root.findall("setting"):
                 sid = setting.get("id")
                 if sid in desired:
@@ -102,13 +119,15 @@ def configure_iptvsimple(m3u_path, epg_path):
         except Exception as e:  # keep going; fall back to add-on-level below
             log(f"instance settings write failed ({path}): {e}")
 
-    # Add-on-level fallback (covers a fresh single-config install with no instance).
-    try:
-        ipa = xbmcaddon.Addon(IPTV_SIMPLE)
-        for key, value in desired.items():
-            ipa.setSetting(key, value)
-    except Exception as e:
-        log(f"add-on-level iptvsimple settings failed: {e}")
+    if not updated:
+        # No adoptable instance -> add-on-level fallback (single-config install).
+        try:
+            ipa = xbmcaddon.Addon(IPTV_SIMPLE)
+            for key, value in desired.items():
+                ipa.setSetting(key, value)
+            updated = True
+        except Exception as e:
+            log(f"add-on-level iptvsimple settings failed: {e}")
 
     return updated
 
